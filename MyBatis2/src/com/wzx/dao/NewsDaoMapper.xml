@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wzx.dao.NewsDao">
+	
+	<!-- 删除 -->
+	<update id="delNews" parameterType="int">
+		update news set yes='no' where id=#{id}
+	</update>
+	<!-- 添加 -->
+	<insert id="addNews" parameterType="news">
+		insert into news(newsid,title,context,newsman,newsdate,pic) values(#{newsid},#{title},#{context},#{newsman},#{newsdate},#{pic})
+	</insert>
+	<!-- 查询 -->
+	<select id="queryNews" parameterType="fenye" resultType="news">
+		select * from news where yes='yes' 
+			<if test="search.qtitle !=null and search.qtitle !=''">
+				and title like concat('%',concat(#{search.qtitle},'%'))
+			</if>
+			<if test="search.qcontext!=null and search.qcontext!=''">
+				and context like concat('%',concat(#{search.qcontext},'%'))
+			</if>
+			limit #{startRow},#{row} 		
+	</select>
+	<!-- 总行数 -->
+	<select id="rowCount" parameterType="java.util.Map" resultType="int">
+		select count(*) from news where yes='yes'
+			<if test="qtitle !=null and qtitle !=''">
+				and title like concat('%',concat(#{qtitle},'%'))
+			</if>
+			<if test="qcontext!=null and qcontext!=''">
+				and context like concat('%',concat(#{qcontext},'%'))
+			</if>
+	</select>
+	<!-- 修改 -->
+	<update id="update" parameterType="news">
+		update news 
+		<trim prefix="set" suffixOverrides=",">
+			<if test="newsid !=null and newsid !=''">
+				newsid=#{newsid},
+			</if>
+			<if test="title !=null and title !=''">
+				title=#{title},
+			</if>
+			<if test="context !=null and context !=''">
+				context=#{context},
+			</if>
+			<if test="newsman !=null and newsman !=''">
+				newsman=#{newsman},
+			</if>
+			<if test="newsdate !=null">
+				newsdate=#{newsdate},
+			</if>
+			<if test="pic !=null and pic !=''">
+				pic=#{pic},
+			</if>
+		</trim>
+		where id=#{id}
+	</update>
+	<!-- 查询单个 -->
+	<select id="queryById" parameterType="int" resultType="news">
+		select * from news where id=#{id}
+	</select>
+</mapper>

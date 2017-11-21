@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wzx.dao.UserDao">
+	<!-- 登录 -->
+	<resultMap type="user" id="UserAndRole" >
+		<id column="id" property="id"/>
+		<result column="name" property="name" />
+		<result column="pwd" property="pwd"/>
+		<result column="age" property="age"/>
+		<result column="nickname" property="nickname"/>
+		<result column="pic" property="pic"/>
+		<result column="yes" property="yes"/>
+		<result column="role_no" property="role_no"/>
+		<!-- 
+			用来级联查询实体类中的对象属性
+			property:该实体类类对应的变量名称
+			column:我要根据该表中的那个字段查询角色对象(外键)
+			javaType:级联查询出来的对象类型
+			select:调用那条sql语句查询该级联对象
+		 -->
+		<association property="role" column="role_no" javaType="role" select="com.wzx.dao.RoleDao.getRole"></association>
+	</resultMap>
+	<select id="login" parameterType="user" resultMap="UserAndRole">
+		select * from p_user where name= #{name} and pwd= #{pwd}
+	</select>
+	<!-- 注册 -->
+	<insert id="reg" parameterType="user">
+		insert into p_user(name,pwd,age,nickname,pic) values(#{name},#{pwd},#{age},#{nickname},#{pic})
+	</insert>
+	<!-- 重名 -->
+	<select id="regName" parameterType="string" resultType="user">
+		select * from p_user where name=#{name}
+	</select>
+</mapper>

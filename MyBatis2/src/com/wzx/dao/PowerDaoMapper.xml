@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wzx.dao.PowerDao">
+	<resultMap type="power" id="powermap">
+		<id column="id" property="id"/>
+		<result column="power_id" property="power_id"/>
+		<result column="pname" property="pname"/>
+	</resultMap>
+	
+	<select id="getPowerByRole" resultMap="powermap">
+		select p.* from midone m,power p where m.p_id=p.id and r_id=#{id}
+	</select>
+</mapper>

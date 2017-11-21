@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+        
+<struts>
+	<package name="user" namespace="/UserAction" extends="json-default">
+		<!-- 登录 -->
+		<action name="userLogin" class="com.wzx.action.UserAction" method="userLogin">
+			<result name="success">/NewFile.jsp</result>
+		</action>
+		
+		<!-- 重复用户名 -->
+		<action name="regName" class="com.wzx.action.UserAction" method="regName">
+			<result name="regName" type="json">
+				<param name="root">json</param>
+			</result>
+		</action>
+		<!-- 注册 -->
+		<action name="regsiter" class="com.wzx.action.UserAction" method="regsiter">
+			<result name="regsiter">/index.jsp</result>
+		</action>
+		<!-- 退出 -->
+		<action name="exit" class="com.wzx.action.UserAction" method="exit">
+			<result name="exit" type="redirect">/index.jsp</result>
+		</action>
+		<!-- 查看个人 -->
+		<action name="queryUser" class="com.wzx.action.UserAction" method="queryUser">
+			<result name="queryUser">/check.jsp</result>
+			<result name="false">/index.jsp</result>
+		</action>
+	</package>
+</struts>

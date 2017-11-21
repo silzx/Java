@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 引入外部properties文件 -->
+	<properties resource="jdbc.properties"></properties>
+	<!-- 允许插入null -->
+	<settings>
+		<setting name="jdbcTypeForNull" value="NULL"/>
+	</settings>
+	<!-- 别名 -->
+	<typeAliases>
+		<typeAlias type="com.wzx.dto.NewsDto" alias="news"/>
+		<typeAlias type="com.wzx.dto.FenYe" alias="fenye"/>
+		<typeAlias type="com.wzx.dto.UserDto" alias="user"/>
+		<typeAlias type="com.wzx.dto.Role" alias="role"/>
+		<typeAlias type="com.wzx.dto.Power" alias="power"/>
+	</typeAliases>
+	<environments default="development">
+		<environment id="development">
+			<!-- 使用JDBC的事务管理方式 -->
+			<transactionManager type="JDBC"></transactionManager>
+			<!-- 使用mybatis自己的连接池 -->
+			<dataSource type="POOLED">
+	 			<property name="driver" value="${jdbc.driverClassName}"/>
+					<property name="url" value="${jdbc.url}"/>
+					<property name="username" value="${jdbc.username}"/>
+					<property name="password" value="${jdbc.password}"/>
+			</dataSource>
+		</environment>
+	</environments>
+	
+	<mappers>
+		<mapper resource="com/wzx/dao/NewsDaoMapper.xml"/>
+		<mapper resource="com/wzx/dao/UserDaoMapper.xml"/>
+		<mapper resource="com/wzx/dao/RoleDaoMapper.xml"/>
+		<mapper resource="com/wzx/dao/PowerDaoMapper.xml"/>
+	</mappers>
+</configuration>

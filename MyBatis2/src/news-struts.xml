@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+        
+<struts>
+	<package name="news" namespace="/NewsAction" extends="struts-default">
+		<action name="queryNews" class="com.wzx.action.NewsAction" method="queryNews">
+			<result name="newsList" >/admin/main.jsp</result>
+		</action>
+		<!-- 添加 -->
+		<action name="addNews" class="com.wzx.action.NewsAction" method="addNews">
+			<result name="addNews" type="redirectAction">
+				<param name="namespace">/NewsAction</param>
+				<param name="actionName">queryNews</param>
+			</result>
+		</action>
+		<!-- 通往修改页面 -->
+		<action name="toUpdate" class="com.wzx.action.NewsAction" method="toUpdate">
+			<result name="toUpdate">/update.jsp</result>
+		</action>
+		<!-- 修改 -->
+		<action name="update" class="com.wzx.action.NewsAction" method="update">
+			<result name="update" type="redirectAction">
+				<param name="namespace">/NewsAction</param>
+				<param name="actionName">queryNews</param>
+			</result>
+			<result name="error" type="redirect">/index.jsp</result>
+		</action>
+		<!-- 删除 -->
+		<action name="del" class="com.wzx.action.NewsAction" method="del">
+			<result name="del" type="redirectAction">
+				<param name="namespace">/NewsAction</param>
+				<param name="actionName">queryNews</param>
+			</result>
+		</action>
+	</package>
+</struts>
