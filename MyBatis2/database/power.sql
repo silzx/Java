@@ -1,0 +1,10 @@
+INSERT INTO `power` VALUES (1, 1, '查看个人资料', 'UserAction/queryUser.action');
+INSERT INTO `power` VALUES (2, 2, '查看新闻列表', 'NewsAction/queryNews.action');
+INSERT INTO `power` VALUES (3, 3, '任命版主', NULL);
+INSERT INTO `power` VALUES (4, 4, '移除版主', NULL);
+INSERT INTO `power` VALUES (5, 5, '任命管理员', NULL);
+INSERT INTO `power` VALUES (6, 6, '移除管理员', NULL);
+INSERT INTO `power` VALUES (7, 7, '禁言', NULL);
+INSERT INTO `power` VALUES (8, 8, '封禁', NULL);
+INSERT INTO `power` VALUES (9, 9, '操作新闻列表', 'NewsAction/queryNews.action');
+INSERT INTO `power` VALUES (10, 10, '修改用户资料', NULL);
