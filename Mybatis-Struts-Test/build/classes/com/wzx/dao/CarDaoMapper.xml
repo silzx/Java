@@ -1,0 +1,106 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper	namespace="com.wzx.dao.CarDao">
+	<select id="list" parameterType="fenye" resultType="car">
+		select * from car where yes='yes'
+		<if test="search.brand !=null and search.brand !=''">
+			and brand like concat('%',concat(#{search.brand},'%'))
+		</if>
+		<if test="search.color !=null and search.color !=''">
+			and color=#{search.color,jdbcType=VARCHAR}
+		</if>
+		<if test="search.startDate !=null and search.startDate !=''">
+			and exp > STR_TO_DATE(#{search.startDate},'%Y-%m-%d')
+		</if>
+		<if test="search.endDate !=null and search.endDate !=''">
+			and exp &lt; STR_TO_DATE(#{search.endDate},'%Y-%m-%d')
+		</if>
+		limit #{startRow},#{row}
+	</select>
+	
+	<select id="rowCount" parameterType="java.util.HashMap" resultType="int">
+		select count(*) from car where yes='yes'
+		<if test="brand !=null and brand !=''">
+				and brand like concat('%',concat(#{brand},'%'))
+		</if>
+		<if test="color!=null and color!=''">
+				and color = #{color}
+		</if>
+		<if test="startDate !=null and startDate !=''">
+		
+			and exp > STR_TO_DATE(#{startDate},'%Y-%m-%d')
+		</if>
+		<if test="endDate !=null and endDate !=''">
+			and exp &lt; STR_TO_DATE(#{endDate},'%Y-%m-%d')
+		</if>
+	</select>
+	
+	<update id="del" parameterType="int">
+		update car set yes='no' where cid=#{id}
+	</update>
+	
+	<select id="check" parameterType="int" resultType="car">
+		select * from car where cid=#{id}
+	</select>
+	
+	<select id="brands" resultType="brand">
+		select * from carbrand
+	</select>
+	
+	<insert id="add" parameterType="car">
+		insert into car
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="brand != null">
+        brand,
+      </if>
+      <if test="color != null">
+        color,
+      </if>
+      <if test="seats != null">
+        seats,
+      </if>
+      <if test="oil != null">
+        oil,
+      </if>
+      <if test="exp != null">
+        exp,
+      </if>
+      <if test="daycast != null">
+        daycast,
+      </if>
+      <if test="addtime != null">
+        addtime,
+      </if>
+      <if test="addman != null">
+        addman,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="brand != null">
+        #{brand},
+      </if>
+      <if test="color != null">
+        #{color},
+      </if>
+      <if test="seats != null">
+        #{seats},
+      </if>
+      <if test="oil != null">
+        #{oil},
+      </if>
+      <if test="exp != null">
+        #{exp},
+      </if>
+      <if test="daycast != null">
+        #{daycast},
+      </if>
+      <if test="addtime != null">
+        now(),
+      </if>
+      <if test="addman != null">
+        #{addman},
+      </if>
+    </trim>
+	</insert>
+</mapper>

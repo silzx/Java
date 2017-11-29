@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+        
+<struts>
+	<package name="user" extends="json-default" namespace="/UserAction">
+		<action name="login" class="com.wzx.action.UserAction" method="login">
+			<result name="login" type="json">
+				<param name="root">session</param>
+			</result>
+		</action>
+	</package>
+</struts>

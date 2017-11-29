@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+        "-//Apache Software Foundation//DTD Struts Configuration 2.0//EN"
+        "http://struts.apache.org/dtds/struts-2.0.dtd">
+<struts>
+	<package name="car" extends="struts-default" namespace="/CarAction">
+		<action name="carlist" class="com.wzx.action.CarAction" method="carlist">
+			<result name="carlist">/main.jsp</result>
+			<result name="error">/error.jsp</result>
+		</action>
+		
+		<action name="del" class="com.wzx.action.CarAction" method="del">
+			<result name="success" type="redirectAction">
+				<param name="namespace">/CarAction</param>
+				<param name="actionName">carlist</param>
+			</result>
+		</action>
+		
+		<action name="check" class="com.wzx.action.CarAction" method="check">
+			<result name="success">/check.jsp</result>
+			<result name="error">/error.jsp</result>
+		</action>
+		
+		<action name="add" class="com.wzx.action.CarAction" method="add">
+			<result name="success" type="redirectAction">
+				<param name="namespace">/CarAction</param>
+				<param name="actionName">carlist</param>
+			</result>
+		</action>
+		
+		<action name="mid" class="com.wzx.action.CarAction" method="mid">
+			<result name="add">/add.jsp</result>
+		</action>
+	</package>
+</struts>
