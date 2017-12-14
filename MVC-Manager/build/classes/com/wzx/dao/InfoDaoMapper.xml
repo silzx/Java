@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wzx.dao.InfoDao">
+	<resultMap type="emp" id="em">
+		<id column="eid" property="eid"/>
+		<result column="joindate" property="joindate"/>
+		<result column="modify" property="modify"/>
+		<result column="ename" property="ename"/>
+		<result column="esex" property="esex"/>
+		<result column="eage" property="eage"/>
+		<result column="epwd" property="epwd"/>
+		<result column="did" property="did"/>
+		<result column="pid" property="pid"/>
+		<!-- 用来级联查询实体类中的对象属性
+			property:该实体类类对应的变量名称
+			column:我要根据该表中的那个字段查询角色对象(外键)
+			javaType:级联查询出来的对象类型
+			select:调用那条sql语句查询该级联对象 -->
+		<association property="dept" javaType="dept" column="did" select="com.wzx.dao.DeptDao.querydept"></association>
+		<association property="power" javaType="power" column="pid" select="com.wzx.dao.PowerDao.querypower"></association>
+	</resultMap>
+	<!-- 级联查询 -->
+	<select id="emps" parameterType="fy" resultMap="em">
+		<!-- 判断登录者权限 -->
+		<!-- 经理权限：查询所有本部门用户 -->
+		<if test="search.emp.pid==4">
+			select * from employee where did=#{search.emp.did} and yes='yes'
+		</if>
+		<!-- 管理员权限：查询所有经理 -->
+		<if test="search.emp.pid==5">
+			select * from employee where pid=4 and yes='yes'
+		</if>
+		<if test="search.ename!=null and search.ename!=''">
+			and ename=#{search.ename}
+		</if>
+		<if test="search.dept!=null and search.dept!=''">
+			and did=#{search.dept}
+		</if>
+		<if test="search.minAge!=null and search.maxAge!=''">
+			and eage >= #{search.minAge}
+		</if>
+		<if test="search.maxAge!=null and search.maxAge!=''">
+			and eage &lt;= #{search.maxAge}
+		</if>
+		order by joindate asc limit #{startRow},#{row}
+	</select>
+	<!-- 非级联查询 -->
+	<select id="emm" parameterType="fy" resultType="map">
+		select e.*,p.pname,d.dname from employee e,power p,dept d
+		<where>
+		e.did=d.did and e.pid=p.pid and 'yes'='yes'
+		<!-- 如果登录者为经理 -->
+		<if test="search.emp.pid==4">
+			and e.did=#{search.emp.did}
+		</if>
+		<!-- 如果登录者为管理员 -->
+		<if test="search.emp.pid==5">
+			and e.pid=4
+		</if>
+		</where>
+		order by joindate asc limit #{startRow},#{row}
+	</select>
+	
+	<select id="rowCount" parameterType="map" resultType="int">
+		select count(*) from employee where yes='yes'
+		<!-- 登录者为普通员工 -->
+		<if test="emp.pid==1">
+			and ename=#{emp.ename}
+		</if>
+		<!-- 登录者为经理 -->
+		<if test="emp.pid==4">
+		 	and did=#{emp.did}
+		</if>
+		<!-- 登录者为管理员 -->
+		<if test="emp.pid==5">
+			and pid=4
+		</if>
+		<if test="ename!=null and ename!=''">
+			and ename=#{ename}
+		</if>
+		<if test="dept!=null and dept!=''">
+			and did=#{dept}
+		</if>
+		<if test="minAge!=null and minAge!=''">
+			and eage >= #{minAge}
+		</if>
+		<if test="maxAge!=null and maxAge!=''">
+			and eage &lt;= #{maxAge}
+		</if>
+	</select>
+	<!-- 删除 -->
+	<update id="del" parameterType="string">
+		update employee set yes='no' where eid in
+		<foreach collection="array" item="ids" separator="," open="(" close=")">
+			#{ids}
+		</foreach>
+	</update>
+	<!-- 修改 -->
+	<select id="queryById" parameterType="String" resultMap="em">
+		select * from employee where eid=#{id}
+	</select>
+	<update id="update" parameterType="emp">
+		update employee
+		<set>
+			<if test="epwd!=null">
+				epwd=#{epwd},
+			</if>
+			<if test="eage!=null">
+				eage=#{eage},
+			</if>
+			<if test="joindate!=null">
+				joindate=#{joindate},
+			</if>
+			<if test="did!=null">
+				did=#{did},
+			</if>
+			<if test="esex!=null">
+				esex=#{esex},
+			</if>
+			<if test="pic != null">
+				pic=#{pic},
+			</if>
+			modify=SYSDATE()
+		</set>
+		where eid=#{eid}
+	</update>
+	<!-- 添加 -->
+	<insert id="add" parameterType="emp">
+		insert into employee 
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			joindate,modify,
+			<if test="ename != null">
+				ename,
+			</if>
+			<if test="esex != null">
+				esex,
+			</if>
+			<if test="eage != null">
+				eage,
+			</if>
+			<if test="did != null">
+				did,
+			</if>
+			<if test="pid != null">
+				pid,
+			</if>
+			<if test="epwd != null">
+				epwd,
+			</if>
+			<if test="pic != null">
+				pic,
+			</if>
+		</trim>
+		<trim prefix="values(" suffix=")" suffixOverrides=",">
+			SYSDATE(),SYSDATE(),
+			<if test="ename != null">
+				#{ename},
+			</if>
+			<if test="esex != null">
+				#{esex},
+			</if>
+			<if test="eage != null">
+				#{eage},
+			</if>
+			<if test="did != null">
+				#{did},
+			</if>
+			<if test="pid != null">
+				#{pid},
+			</if>
+			<if test="epwd != null">
+				#{epwd},
+			</if>
+			<if test="pic != null">
+				#{pic},
+			</if>
+		</trim>
+	</insert>
+</mapper>

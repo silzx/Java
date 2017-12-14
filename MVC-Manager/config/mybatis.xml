@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<setting name="jdbcTypeForNull" value="NULL"/>
+	</settings>	
+	<typeAliases>
+		<typeAlias type="com.wzx.dto.empDto" alias="emp"/>
+		<typeAlias type="com.wzx.dto.deptDto" alias="dept"/>
+		<typeAlias type="com.wzx.dto.powerDto" alias="power"/>
+		<typeAlias type="com.wzx.util.FenYe" alias="fy"/>
+	</typeAliases>
+	<mappers>
+		<mapper resource="com/wzx/dao/EmpDaoMapper.xml"/>
+		<mapper resource="com/wzx/dao/DeptDaoMapper.xml"/>
+		<mapper resource="com/wzx/dao/PowerDaoMapper.xml"/>
+		<mapper resource="com/wzx/dao/InfoDaoMapper.xml"/>
+	</mappers>
+	
+</configuration>

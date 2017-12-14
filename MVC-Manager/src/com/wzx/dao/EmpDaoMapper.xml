@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wzx.dao.EmpDao">
+	<resultMap type="emp" id="em">
+		<id column="eid" property="eid"/>
+		<result column="joindate" property="joindate"/>
+		<result column="modify" property="modify"/>
+		<result column="ename" property="ename"/>
+		<result column="esex" property="esex"/>
+		<result column="eage" property="eage"/>
+		<result column="epwd" property="epwd"/>
+		<result column="did" property="did"/>
+		<result column="pid" property="pid"/>
+		<!-- 用来级联查询实体类中的对象属性
+			property:该实体类类对应的变量名称
+			column:我要根据该表中的那个字段查询角色对象(外键)
+			javaType:级联查询出来的对象类型
+			select:调用那条sql语句查询该级联对象 -->
+		<association property="dept" javaType="dept" column="did" select="com.wzx.dao.DeptDao.querydept"></association>
+		<association property="power" javaType="power" column="pid" select="com.wzx.dao.PowerDao.querypower"></association>
+	</resultMap>
+	<select id="login" parameterType="emp" resultMap="em">
+		select * from employee where ename=#{ename} and epwd=#{epwd}
+	</select>
+	
+</mapper>
