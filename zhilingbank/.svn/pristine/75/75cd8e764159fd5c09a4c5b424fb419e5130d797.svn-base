@@ -1,0 +1,406 @@
+package com.zl.controller;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import lombok.extern.slf4j.Slf4j;
+
+import org.apache.commons.codec.digest.Md5Crypt;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.google.code.kaptcha.impl.DefaultKaptcha;
+import com.google.code.kaptcha.util.Config;
+import com.zl.beans.BillsInfo;
+import com.zl.beans.CardCost;
+import com.zl.dao.CardManagerDao;
+import com.zl.dao.UserDao;
+import com.zl.pojo.Bills;
+import com.zl.pojo.CardMessage;
+import com.zl.pojo.MessageInfo;
+import com.zl.pojo.TradeRecord;
+import com.zl.pojo.User;
+import com.zl.pojo.UserAllInfo;
+import com.zl.service.inter.CardManageInter;
+import com.zl.service.inter.IUserService;
+import com.zl.tool.PageBean;
+import com.zl.util.InterfaceCall;
+import com.zl.util.MD5Util;
+import com.zl.util.RedisTool;
+import com.zl.util.Uuid;
+
+/**
+ * @author：汪泽轩
+ * @Description: 用户相应的操作   
+ * @Date:2018年1月4日下午9:23:13   
+ */
+
+@Slf4j
+@Controller
+@Scope("prototype")
+@RequestMapping("user")
+
+public class UserController {
+	@Autowired
+	private CardManageInter cmi;
+	@Autowired
+	private UserAllInfo uai;
+	@Autowired
+	private CardManagerDao cmd;
+	@Autowired
+	private InterfaceCall ic;
+	@Autowired
+	private IUserService us;
+	
+	@Autowired
+	private UserDao ud;
+
+	
+	/*@RequestMapping("test")
+	public ModelAndView test(){
+		ModelAndView mv=new ModelAndView();
+		mv.setViewName("login");
+		return mv;
+	}
+	*/
+	/**   
+	 * @Title: login   
+	 * @author：汪泽轩
+	 * @Description: 用户登录方法  
+	 * 黄超修改             
+	 */
+	
+	@RequestMapping("login")
+	@ResponseBody
+	public Map<String,Object> login(CardMessage cm,String cardNum, String password, HttpSession session){
+		Map<String,Object> json=new HashMap<String, Object>();	
+		String salt = us.querySaltByCardNum(cardNum);//根据卡号获取开卡时产生的随机盐值
+		cm.setPassword(MD5Util.inputToDataBases(password, salt));
+		CardMessage card = cmi.cardUserLogin(cm);
+		if(card!=null){
+			String idCard = card.getIdCard();
+			User user=cmi.queryUserInfo(idCard);		
+			Bills bills=cmi.queryBillsInfo(idCard);
+			//System.out.println(bills.getAlreadyBill());
+			uai.setUser(user);
+			//System.out.println(user.getIdCard());
+			uai.setCardMessage(card);
+			//System.out.println(card.getCardNum());
+			uai.setBills(bills);
+			session.setAttribute("uai", uai);
+			json.put("mess", true);
+		}else{
+			json.put("mess", false);
+		}
+		return json;	
+	}
+	
+	@ResponseBody
+	@RequestMapping("codeCheck")
+	public Map<String,Object> condeCheck(CardMessage cm){
+		Map<String,Object> json=new HashMap<String, Object>();
+		String phone = cmi.getOpenPhoneNum(cm);
+		if(phone==null){
+			json.put("mess", false);
+		}else{
+			json.put("mess", true);
+			json.put("phone", phone);
+		}
+		return json;
+	}
+	
+	/**   
+	 * @Title: queryBillsInfoByIdCard   
+	 * @author：汪泽轩
+	 * @Description: 根据session中存储的用户idcard查询出账单相关信息               
+	 */
+	@ResponseBody
+	@RequestMapping("query")
+	private Map<String,Object> queryBillsInfoByIdCard(String idCard,HttpSession session){
+		Map<String,Object> json=new HashMap<String, Object>();
+		BillsInfo bi = ud.queryInfoByIdCard(idCard);
+		if (bi!=null) {
+			json.put("mes", true);
+			session.setAttribute("bill", bi);
+		}
+		return json;
+	}
+	
+	@Bean
+	public DefaultKaptcha captchaProducer(){
+		DefaultKaptcha captchaProducer =new DefaultKaptcha();
+		Properties properties =new Properties();
+		properties.setProperty("kaptcha.border","yes");
+		properties.setProperty("kaptcha.border.color","105,179,90");
+		properties.setProperty("kaptcha.textproducer.font.color","blue");
+		properties.setProperty("kaptcha.image.width","125");
+		properties.setProperty("kaptcha.image.height","45");
+		properties.setProperty("kaptcha.textproducer.font.size","45");
+		properties.setProperty("kaptcha.session.key","code");
+		properties.setProperty("kaptcha.textproducer.char.length","4");
+		properties.setProperty("kaptcha.textproducer.font.names","宋体,楷体,微软雅黑");
+		Config config=new Config(properties);
+		captchaProducer.setConfig(config);
+		return  captchaProducer;
+	}
+
+	
+	/**
+	 * @title:billByStages
+	 * @author:黄超
+	 * @Description:账单分期control方法	
+	 */
+	@RequestMapping("billByStages")
+	@ResponseBody
+	public Map<String,Object> billByStages(Bills bills,HttpSession session){
+		System.out.println("进入分期方法");
+		Map<String,Object> json=new HashMap<String, Object>();
+		UserAllInfo uai=(UserAllInfo) session.getAttribute("uai");
+		int fag=uai.getBills().getRestqishu();
+		if(fag>0){
+			System.out.println("用户已经分期，无法再次分期");
+			json.put("mess", false);
+			json.put("data", "用户已经分期，无法再次分期");
+			return json;
+		}
+		bills.setCurrentqs(1);
+		int flag=cmi.updateBillByStages(bills);
+		if(flag>0){
+			//账单更新成功重新查询账单，并存入session
+			bills=cmi.queryBillsInfo(bills.getIdCard());
+			uai.setBills(bills);
+			session.setAttribute("uai", uai);
+			json.put("mess", true);
+			
+		}else{
+			json.put("mess", false);
+			json.put("data", "系统异常");
+		}
+		return json;
+	}
+
+	/**
+	 * @author 吕攀
+	 * @Time 下午5:24:452018年1月10日
+	 
+	 */
+	@RequestMapping("updateUser")
+	public ModelAndView updateUser(User ui, HttpSession session){
+		int f=cmd.updateUserInfo(ui);
+		if(f>0){
+			uai.setUser(ui);
+			session.setAttribute("uai",uai);
+		}
+		
+		return new ModelAndView("redirect:/admin/user.jsp");
+	}
+	
+
+	/**   
+	 * @Title: trade   
+	 * @author：汪泽轩
+	 * @Description: 消费               
+	 */
+	@ResponseBody
+	@RequestMapping("trade")
+	public Map<String, Object> trade(CardCost cc,String price){
+		Map<String,Object> json=new HashMap<String, Object>();
+		Double pr = Double.parseDouble(price);
+		String pwd = cc.getPassWord();
+		String dbsalt = ud.querySaltByCardNum(cc.getCardNum());
+		cc.setPassWord(MD5Util.inputToDataBases(pwd, dbsalt));
+		User costUser =  us.tradeByCardCost(cc);
+		cc.setPrice(pr);
+		if(costUser !=null){
+			System.out.println("查询到user");
+			if(costUser.getOverline()==0){//溢出金=0
+				System.out.println("溢出金=0");
+				if(costUser.getAvabalance()>pr){
+					System.out.println("可用额度足够支付");
+					boolean flag = us.cost(cc);
+					if(flag){
+						System.out.println("支付成功");
+						json.put("mes", true);
+					}
+				}else{
+					System.out.println("额度不够支付");
+					json.put("mes", false);
+					return json;
+				}
+			}
+			if(costUser.getOverline()>=pr){//溢出金>=消费金额
+				System.out.println("溢出金>=消费金额");
+				boolean flag = us.costOverline(cc);
+				if(flag){
+					System.out.println("溢出金支付成功");
+					json.put("mes", true);
+				}
+			}else{//溢出金<消费金额
+				if(costUser.getAvabalance()>(pr-costUser.getOverline())){//如果额度够消费
+					System.out.println("溢出金不够消费金额，但是可用额度足够支付减去溢出金的消费金额");
+					boolean flag = us.costOffOverline(cc);
+					if(flag){
+						System.out.println("支付成功");
+						json.put("mes", true);
+					}
+				}else{
+					System.out.println("溢出金，可用额度均不足支付");
+					json.put("mes", false);
+				}
+			}
+		}
+		return json;
+	}
+	
+	
+	/**
+	 * @param 
+	 * @return 消费记录
+	 * @description 分页查询所有消费记录
+	 * @Author 谢文奇
+	 */
+	@Autowired
+	private RedisTool rt;
+	
+	@RequestMapping("queryConsumeInfo")
+	@ResponseBody
+	public Map<String, Object> queryConsumeInfo(Integer PAGE, 
+			PageBean pb, HttpSession request, String timeIn1,String timeIn2){
+		Map<String,Object> json=new HashMap<String, Object>();
+		Date timeU1 = null;
+		Date timeU2 = null;
+		java.sql.Date time1 = null;
+		java.sql.Date time2 = null;
+		if(!"".equals(timeIn1) && timeIn1 != null && timeIn2 != null && !"".equals(timeIn2)){
+			DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+			try {
+				timeU1 =  formatter.parse(timeIn1);
+				timeU2 =  formatter.parse(timeIn2);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+			time1 = new java.sql.Date(timeU1.getTime());
+			time2 = new java.sql.Date(timeU2.getTime());
+		}
+		
+		//获取登录的用户的信息
+		UserAllInfo u = (UserAllInfo) request.getAttribute("uai");
+				
+		String idCard = u.getUser().getIdCard();
+		//String idCard = "123456789";
+		
+		//查询总记录数
+		if(time1 != null && time2 != null){
+			pb.rowCount = ud.selectCountByTime(time1, time2, idCard);
+		}else{
+			pb.rowCount = ud.selectCount(idCard);
+		}
+		
+		//设置初始页
+		if (pb.page == 0) {
+			pb.page = 1;
+		}
+		
+		//计算总页数
+		if (pb.rowCount % pb.row == 0) {
+			pb.pageCount = pb.rowCount / pb.row;
+		} else {
+			pb.pageCount = pb.rowCount / pb.row + 1;
+		}
+	
+		//翻页控制
+		if(PAGE != null){
+			if(PAGE == -1){
+				if(pb.page != 1){
+					pb.page = pb.page+PAGE;
+				}
+			}else{
+				if(pb.page != pb.pageCount){
+					pb.page = pb.page+PAGE;
+				}
+			}
+		}
+		
+		//设置起点记录
+		pb.startRow = (pb.page - 1) * pb.row;
+
+		//TRList：消费记录集合
+		List<TradeRecord> TRList = new ArrayList<TradeRecord>();
+		if(time1 != null && time2 != null){
+			TRList = ud.queryConsumeInfoByTime(pb, time1, time2, idCard);
+		}else{
+			TRList = ud.queryConsumeInfo(pb, idCard);
+		}
+		
+		if(TRList != null){
+			System.out.println(TRList);
+			request.setAttribute("TRList", TRList);
+			request.setAttribute("pageCount", pb.pageCount);
+			request.setAttribute("page", pb.page);
+			request.setAttribute("firstTime", timeIn1);
+			request.setAttribute("lastTime", timeIn2);
+			json.put("mess", true);
+		}else{
+			json.put("mess", false);
+		}
+		
+		return json;
+	}
+	
+	
+	
+	/**
+	 * @title:logout
+	 * @author:黄超
+	 * @Description:注销登录用户	
+	 */
+	@RequestMapping("exitSys")
+	public  ModelAndView logout(HttpSession session){
+		session.removeAttribute("uai");
+		session.invalidate();
+		return new ModelAndView("redirect:../header.jsp");
+	}
+	
+	/**   
+	 * @Title: SearchRecord   
+	 * @author：汪泽轩
+	 * @Description: 查询未出消费记录               
+	 */
+	@ResponseBody
+	@PostMapping("record")
+	public Map<String, Object> SearchRecord(String cardNum,HttpSession session){
+		Map<String, Object> json = new HashMap<>();
+		List<MessageInfo> mes = us.record(cardNum);
+		if(mes != null){
+			json.put("message", true);
+			session.setAttribute("mes", mes);
+		}else{
+			json.put("message", false);
+		}
+		return json;
+		
+	}
+	
+}

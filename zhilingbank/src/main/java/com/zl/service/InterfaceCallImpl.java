@@ -1,0 +1,139 @@
+package com.zl.service;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.springframework.stereotype.Service;
+
+import com.zl.tool.contool;
+import com.zl.util.InterfaceCall;
+
+@Service
+public class InterfaceCallImpl implements InterfaceCall {
+
+	// 短信验证1
+	@Override
+	public int interfacePhone(String phone) {
+		Random ra=new Random();
+		int a=ra.nextInt(8999)+1000;
+		String content;
+		content = "【知领信用】您的验证码是"+a+",若非本人操作请忽略！！！！！！！";
+		JSONObject json = new JSONObject();
+		try{
+			content = URLEncoder.encode(content, "UTF-8");
+//			System.out.println(content);
+			if (phone != null) {
+				contool c = new contool();
+//				String fh = c.get("https://way.jd.com/BABO/sms?mobile=" + phone + "&msg=" + content + "&appkey=16ac6d2b603729fed36d1cafcd12ad9a");		
+				String fh;
+				fh = c.post("https://way.jd.com/BABO/sms", "mobile="+phone+"&msg="+content+"&appkey=76d3e2fdb58d2a8d08163b47b70e9aaf&");
+				json = new JSONObject(fh);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}	
+		return a;
+	}
+
+	@Override
+	public void interfaceCredit() {
+		// TODO Auto-generated method stub
+
+	}
+
+	/** * 
+	@author    姚彬彬 
+	@date      2018年1月9日 下午3:10:19   
+	@describe  查询身份证和姓名是否一致
+	*/
+	@Override
+	public JSONObject interfaceIdCard(String card_name,String card_id) {
+		JSONObject json = new JSONObject();
+		try {
+			
+			if(card_name!=null||card_id!=null){
+				contool c = new contool();
+				card_name = URLEncoder.encode(card_name, "UTF-8");				
+				
+				String fh = c.post("https://way.jd.com/freedt/api_rest_police_identity", "name="+card_name+"&idCard="+card_id+"&appkey=16ac6d2b603729fed36d1cafcd12ad9a关闭&");
+				json =new JSONObject(fh);
+				//失败{"result":{"error":"POLICE_IDENTITY_CHECK_ID_INVALID","errorDesc":"身份证验证查询输入身份证不合法","code":30001001,"success":false},"charge":false,"code":"10000","msg":"查询成功"}
+			    //成功{"result":{"data":{"compareStatus":"SAME","compareStatusDesc":"一致","name":"姚彬彬","identityCard":"430581199305147297"},"success":true},"charge":true,"code":"10000","msg":"查询成功,扣费"}
+
+			}else{
+			
+				json.put("charge", false);
+				
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			try {
+				json.put("charge", false);
+				
+			} catch (JSONException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+		return json;
+
+	}
+
+	@Override
+	public void interfaceEducation() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void interfaceAntiFraud() {
+		// TODO Auto-generated method stub
+
+	}
+	/** * 
+	@author    姚彬彬 
+	@date      2018年1月9日 下午3:10:19   
+	@describe  公司信息查询
+	*/
+	@Override
+	public JSONObject interCompany(String company_name, String company_id) {
+		JSONObject json = new JSONObject();
+		try {
+			
+			if(company_id!=null){
+				contool c = new contool();
+				
+						
+				String fh = c.post("https://way.jd.com/jindidata/company_info", "id="+company_id+"&appkey=16ac6d2b603729fed36d1cafcd12ad9a&");
+				json.put("phone", new JSONObject(fh));
+			}else if(company_name!=null&&company_id==null){
+				contool c = new contool();
+				company_name = URLEncoder.encode(company_name, "UTF-8");
+				String fh = c.post("https://way.jd.com/QZZM/CommerceVague", "comName="+company_name+"&page=1&appkey=16ac6d2b603729fed36d1cafcd12ad9a&");
+				
+				json = new JSONObject(fh);
+			}else{
+			
+				json.put("re", "返回失败");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			try {
+				json.put("re", "返回失败");
+			} catch (JSONException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+		return json;
+		
+	}
+
+	
+
+}

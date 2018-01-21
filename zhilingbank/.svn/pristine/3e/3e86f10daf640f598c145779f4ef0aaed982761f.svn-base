@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://192.168.188.41:3306/samh?useUnicode=true&characterEncoding=utf-8&useSSL=true&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true 
+    username: root
+    password: 123
+    driver-class-name: com.mysql.jdbc.Driver
+    
+  mybatis: 
+  mapperLocations: classpath:/spring.xml
+  typeAliasesPackage: tk.mapper.model 

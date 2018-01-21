@@ -1,0 +1,176 @@
+package com.zl.dao;
+
+import java.util.Date;
+import java.util.List;
+import java.math.BigDecimal;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+
+import com.zl.beans.BillsInfo;
+import com.zl.pojo.TradeRecord;
+import com.zl.beans.CardCost;
+import com.zl.pojo.CardMessage;
+import com.zl.pojo.MessageInfo;
+import com.zl.pojo.User;
+import com.zl.tool.PageBean;
+
+/** * 
+@author    姚彬彬 
+@date      2018年1月9日 下午3:55:18   
+@describe  UserDao接口
+ */
+@Mapper
+public interface UserDao {
+	
+	
+	/** * 
+	@author    姚彬彬 
+	@date      2018年1月9日 下午4:57:54   
+	@describe  插入user表
+	*/
+	@Insert("insert into carduser(userid,username,idcard,phone,companyName,companyAdd,comphone,ismarry,familyadd,creditline,avabalance,usedbalance,overline,linkman,linksex,linkrelationship,linkphone)values(#{userid},#{username},#{idCard},#{phone},#{companyName},#{companyAdd},#{comphone},#{ismarry},#{familyadd},#{creditline},#{avabalance},#{usedbalance},#{overline},#{linkman},#{linksex},#{linkrelationship},#{linkphone})")
+	boolean insertUser(User user);
+	
+	/**   
+	 * @Title: queryInfoByIdCard   
+	 * @author：汪泽轩
+	 * @Description: 登录后的账户管理标签。根据SESSION中存储的登录用户的idCard查询如下信息               
+	 */
+	@Select("select cm.cardstatus,cu.creditline,cu.avabalance,b.billdate,b.payback,"
+			+ "b.alreadybill,b.notreadybill,b.refundnow,b.notrefundnow from "
+			+ "cardmessage cm, carduser cu, bills b where cm.idcard=cu.idcard "
+			+ "and cu.idcard=b.idcard and b.idcard=#{idCard}")
+	BillsInfo queryInfoByIdCard(String idCard);
+	
+	
+	/**   
+	 * @Title: querySaltByCardNum   
+	 * @author：汪泽轩
+	 * @Description: 根据卡号查询出盐值，登录需要二次加密               
+	 */
+	@Select("select salt from cardmessage where cardnum=#{cardNum}")
+	String querySaltByCardNum(String cardNum);
+	
+	
+	/**
+	 * @param idCard 
+	 * @param idCard 
+	 * @param 分页工具
+	 * @return 消费记录
+	 * @description 根据分页工具中的条件分页查询消费记录
+	 * @Author 谢文奇
+	 */
+	@Select("select SwiftNumber,TradeType,Money,EnterDate from tlog where"
+			+ " cardNum=(select cardNum from cardmessage"
+			+ " where idcard=#{1}) limit #{0.startRow},#{0.row}")
+	@Results({
+		@Result(column="SwiftNumber",property="tradeUUID"),
+		@Result(column="Money",property="trade"),
+		@Result(column="EnterDate",property="tradeDate")
+	})
+	List<TradeRecord> queryConsumeInfo(PageBean pb, String idCard);
+
+	
+	
+	/**
+	 * @param idCard 
+	 * @param idCard 
+	 * @return 消费记录总数
+	 * @description 查询所有消费记录总数
+	 * @Author 谢文奇
+	 */
+	@Select("select count(*) from tlog where cardNum=(select cardNum from cardmessage"
+			+ " where idcard=#{0})")
+	int selectCount(String idCard);
+	
+	
+
+	/**
+	 * @param idCard 
+	 * @param idCard 
+	 * @return 某段时间内消费记录总数
+	 * @description 查询某段时间内所有消费记录总数
+	 * @Author 谢文奇
+	 */
+	@Select("select count(*) from tlog where EnterDate between #{0} And #{1}"
+			+ " and cardNum=(select cardNum from cardmessage"
+			+ " where idcard=#{2})")
+	int selectCountByTime(java.sql.Date time1, java.sql.Date time2, String idCard);
+
+	
+	
+	/**
+	 * @param time2 
+	 * @param idCard 
+	 * @param idCard 
+	 * @param 分页工具
+	 * @return 消费记录
+	 * @description 根据分页工具中的条件分页查询某段时间内的消费记录
+	 * @Author 谢文奇
+	 */
+	@Select("select SwiftNumber,TradeType,Money,EnterDate from tlog where EnterDate  "
+			+ "between #{1} And #{2} and cardNum=(select cardNum from cardmessage"
+			+ " where idcard=#{3}) limit #{0.startRow},#{0.row}")
+	@Results({
+		@Result(column="SwiftNumber",property="tradeUUID"),
+		@Result(column="Money",property="trade"),
+		@Result(column="EnterDate",property="tradeDate")
+	})
+	List<TradeRecord> queryConsumeInfoByTime(PageBean pb, java.sql.Date time, java.sql.Date time2, String idCard);
+	
+	/**   
+	 * @Title: tradeByCardCost   
+	 * @author：汪泽轩
+	 * @Description: 支付验证：卡号，密码，以及三位CVV2码              
+	 */
+	@Select("select userid,username,idcard,phone,companyname,companyadd,comphone,"
+			+ "ismarry,familyadd,linkman,linksex,linkrelationship,linkphone,"
+			+ "creditline,avabalance,usedbalance,overline from carduser where "
+			+ "idcard=(select idcard from cardmessage where cardnum=#{cardNum} "
+			+ "and password=#{passWord}"
+			+ "and SUBSTR(backcode FROM 5)=#{backcode} and cardstatus=1)")
+	User tradeByCardCost(CardCost cc);
+	
+	/**   
+	 * @Title: cost   
+	 * @author：汪泽轩
+	 * @Description: 无溢出金时：消费-额度增减关系               
+	 */
+	@Update("update carduser c,bills b set c.avabalance=c.avabalance-#{price},c.usedbalance=c.usedbalance+#{price},"
+			+ " b.notreadybill=b.notreadybill+#{price} where c.avabalance>#{price} and c.idcard=#{idcard} and b.idcard=c.idcard")
+	int cost(CardCost cc);
+	
+	/**   
+	 * @Title: costOverline   
+	 * @author：汪泽轩
+	 * @Description: 有溢出金时并且溢出金>价格             
+	 */
+	@Update("update carduser set overline=overline-#{price} where idcard=#{idcard}")
+	int costOverline(CardCost cc);
+	
+	/**   
+	 * @Title: costOffOverline   
+	 * @author：汪泽轩
+	 * @Description: 有溢出金并且溢出金<价格               
+	 */
+	@Update("update carduser c,bills b set c.overline=c.overline-c.overline , c.avabalance="
+			+ "c.avabalance-#{price}+c.overline , c.usedbalance=c.usedbalance+(#{price}-c.ov"
+			+ "erline),b.notreadybill=b.notreadybill+(#{price}-c.overline)")
+	int costOffOverline(CardCost cc);
+
+	/**   
+	 * @Title: record   
+	 * @author：汪泽轩
+	 * @Description: 根据卡号查询未出账单的消费记录               
+	 */
+	@Select("SELECT t.SwiftNumber,t.cardNum,t.TradeType,t.Money,t.EnterDate,t.Money,"
+			+ "t.PosNum FROM tlog t,( SELECT billdate,nextbilldate from bills WHERE idcard "
+			+ "= (SELECT idcard from cardmessage where cardnum=#{cardNum})) "
+			+ "a WHERE t.EnterDate > a.billdate and t.EnterDate < a.nextbilldate")
+	List<MessageInfo> record(String cardNum);
+}

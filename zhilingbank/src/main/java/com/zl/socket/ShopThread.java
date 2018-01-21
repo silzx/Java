@@ -1,0 +1,192 @@
+package com.zl.socket;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import com.zl.beans.CardCost;
+import com.zl.pojo.MessageInfo;
+import com.zl.service.CostSocketImpl;
+import com.zl.service.inter.IUserService;
+import com.zl.tool.RsaSignature;
+import com.zl.tool.rsa;
+import com.zl.util.SpringUtil;
+
+@Component("shopThread")
+@Scope("prototype")
+public class ShopThread extends Thread{
+	
+		final static Logger logger= LoggerFactory.getLogger(ShopThread.class);
+		
+		@Autowired
+		private CardCost cardCost;			//需要使用到的各类，问题是不能注入
+		@Autowired
+		private MessageInfo messageInfo;
+		@Autowired
+		private CostSocketImpl costSocketImpl;
+		
+		private String str;
+		private String priKey;
+		private Date tradeDate;
+		private OutputStream os=null;
+		private PrintWriter pw=null;
+		private Socket socket;
+		private String sign;	//获取到加密后签名
+		private String pubKey;	//获取解密签名公钥
+
+		public ShopThread(Socket socket){			//构造方法，在创建对象时创建各个bean
+			this.cardCost=(CardCost) SpringUtil.getBean("cardCost");
+			this.messageInfo=(MessageInfo) SpringUtil.getBean("messageInfo");
+			this.costSocketImpl=(CostSocketImpl) SpringUtil.getBean("costSocketImpl");
+			this.socket=socket;
+		}
+
+		
+		@Override
+		public void run() {		//解密加密后的定长报文，并按照相应格式进行解析，并调用方法进行消费
+			//使用公钥验证签名
+			boolean bool=RsaSignature.doCheck("samh", sign, pubKey);
+			if(bool==true){
+				System.out.println("签名验证无误");
+			}else{
+				System.out.println("签名验证有误");
+				return;
+			}
+			System.out.println("加密后的数据为："+str);
+			System.out.println("私钥为:"+priKey);
+			//使用私钥解密传递来的定长报文
+			String data=null;
+			try {
+				data = rsa.getDecrypt(str, priKey);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			System.out.println("服务端接受到的报文为："+data); 	//解密报文
+			//将解密后的定长报文按照一定格式进行解析，并调用数据库进行消费
+			data=data.trim();
+			System.out.println("去空格后数据为："+data);
+			//以|为符号进行分割
+			String[] strs=data.split("\\|");
+			for (int i = 0; i < strs.length; i++) {
+				System.out.println(strs[i]);
+			}
+			messageInfo.setTradeNum(strs[0]);		//设置交易编号
+			//设置交易日期
+			SimpleDateFormat sdf=new SimpleDateFormat("yyyyMMddHHmmss");
+			try {
+				tradeDate=sdf.parse(strs[1]);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}											//更改日期显示格式
+			SimpleDateFormat sdf1=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			String date=sdf1.format(tradeDate);
+			try {
+				tradeDate=sdf1.parse(date);
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			messageInfo.setTradeDate(tradeDate);			//设置交易日期格式
+			messageInfo.setCardNum(strs[2]);			//设置交易卡号
+			cardCost.setCardNum(strs[2]);
+			//messageInfo.setPassword(strs[3].substring(0, 6)); 	//设置交易密码
+			cardCost.setPassWord(strs[3].substring(0, 6));
+			//messageInfo.setBackCode(strs[3].substring(6,9));		//设置卡背后三位数验证码
+			cardCost.setBackcode(strs[3].substring(6,9));
+			String price=strs[4].substring(0, 7)+"."+strs[4].substring(7, 9);
+			messageInfo.setPrice(new Double(price));		//设置交易金额
+			cardCost.setPrice(new Double(price));
+			messageInfo.setStoreName(strs[5]); 		//设置交易商铺
+			messageInfo.setPosNum(strs[6]); 			//设置交易POS机编号
+			if("1".equals(strs[7])){
+				messageInfo.setTradeType("个人消费"); 	//设置交易类型
+			}
+			int flag=costSocketImpl.tradeAndTlog(cardCost, new Double(price), messageInfo);		//处理交易和插入交易记录
+			System.out.println("交易编码为:"+flag);
+			try {
+				os=socket.getOutputStream();
+				pw=new PrintWriter(os);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if(flag==100){	
+				pw.write("100"); 	//code:100,交易成功
+			}else if(flag==101){
+				pw.write("101");		//code:101,余额不足！
+			}else if(flag==102){
+				pw.write("102");	//code:102,账户信息有误！
+			}else{
+				pw.write("103");	//code:103,系统异常
+			}
+			pw.flush();
+			pw.close();
+			try {
+				os.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+
+		
+		public String getStr() {
+			return str;
+		}
+
+
+
+		public void setStr(String str) {
+			this.str = str;
+		}
+
+
+
+		public String getPriKey() {
+			return priKey;
+		}
+
+
+
+		public void setPriKey(String priKey) {
+			this.priKey = priKey;
+		}
+
+
+		public String getSign() {
+			return sign;
+		}
+
+
+		public void setSign(String sign) {
+			this.sign = sign;
+		}
+
+
+		public String getPubKey() {
+			return pubKey;
+		}
+
+
+		public void setPubKey(String pubKey) {
+			this.pubKey = pubKey;
+		}
+
+		
+		
+}

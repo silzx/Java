@@ -1,0 +1,177 @@
+package com.zl.service;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.zl.dao.CardManagerDao;
+import com.zl.dao.SecondApprovalerDao;
+import com.zl.dao.UserDao;
+import com.zl.pojo.CardMessage;
+import com.zl.pojo.CustomerInfo;
+import com.zl.pojo.User;
+import com.zl.service.inter.SecondApprovaler;
+import com.zl.util.CreditCardUtil;
+import com.zl.util.Uuid;
+
+/**
+ * *
+ * 
+ * @author 姚彬彬
+ * @date 2018年1月9日 下午12:33:14
+ * @describe
+ */
+@Service
+public class SecondApprovalerImpl implements SecondApprovaler {
+
+	@Autowired
+	private SecondApprovalerDao secondDao;
+	@Autowired 
+	private UserDao userDao;
+	@Autowired
+	private CardManagerDao cardDao;
+
+	@Override
+	public void callCreditInterface() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void callIdCardInterface() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void callEducationInterface() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void callAntiFraudInterface() {
+		// TODO Auto-generated method stub
+
+	}
+
+	/**
+	 * *
+	 * 
+	 * @author 姚彬彬
+	 * @date 2018年1月9日 下午12:33:36
+	 * @describe 二级审核员可以获取用户
+	 */
+	@Override
+	public List<CustomerInfo> secondApprovalerQueryCustomer(String page,String fuzzy) {
+		Integer length=10;
+		page = page == null ? "1" : page;
+		Integer cupage = Integer.valueOf(page);
+		fuzzy = fuzzy == null ? "" : fuzzy;
+		
+		List<CustomerInfo> second_list = secondDao.secondApprovalerQueryCustomer((cupage-1)*length,length,fuzzy);
+
+		
+		return second_list;
+
+	}
+
+	/**
+	 * *
+	 * 
+	 * @author 姚彬彬
+	 * @date 2018年1月9日 下午12:33:36
+	 * @describe Override二级审核员可以查看用户详情
+	 */
+	public CustomerInfo secondApprovalerShowInfo(String uuid) {
+		uuid = uuid == null ? "" : uuid;
+		CustomerInfo customer = secondDao.QueryCustomer(uuid);
+		return customer;
+	}
+
+
+	@Override
+	@Transactional(rollbackFor=Exception.class)
+	public void secondApprovalerSubmitCustomer(CustomerInfo c) {
+			int userCount = userDao.obtainUser(c.getIdCard());
+			System.out.println(userCount);
+			System.out.println(c.getIdCard());
+			if(userCount==0){
+				
+			User user = new User();
+			user.setUserid(Uuid.getUuid());
+			user.setIdCard(c.getIdCard());
+			user.setUsername(c.getName());
+			user.setPhone(c.getMobile());
+			user.setCompanyName(c.getCompanyName());
+			user.setCompanyAdd(c.getJobAddress());
+			user.setComphone(c.getCompanyPhone());
+			user.setIsmarry(c.getMarryed());
+			user.setFamilyadd(c.getHomeAddress());
+			user.setLinkman(c.getLinkMan());
+			user.setLinkrelationship(c.getLinkNexus());
+			user.setLinkphone(c.getLinkMobile());	
+			user.setAvabalance(c.getAvabalance());
+			user.setCreditline(c.getAvabalance());
+			System.out.println(user);
+			System.out.println(c);			
+			boolean B_user = userDao.insertUser(user);
+			}
+		
+			CreditCardUtil cardUtil= new CreditCardUtil();
+			CardMessage card = new CardMessage();
+			card.setIdCard(c.getIdCard());
+			card.setCardNum(cardUtil.getCreditCardNum(String.valueOf(c.getCardType())));
+			card.setCardType(c.getCardType());
+			card.setBackCode(card.getCardNum().substring(card.getCardNum().length()-7));
+			
+			//过期日期
+			Date date1 = new Date();//当前日期  
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//格式化对象  
+			Calendar calendar1 = Calendar.getInstance();//日历对象  
+			calendar1.setTime(date1);//设置当前日期  
+			calendar1.add(Calendar.YEAR, 10);//月份加一  
+			card.setDeadDate(calendar1.getTime());
+			//还款日期
+//			Date date2 = new Date();//当前日期  
+//			Calendar calendar2 = Calendar.getInstance();//日历对象  
+//			calendar2.setTime(date2);//设置当前日期  
+//			calendar2.add(Calendar.MONTH, 1);//月份加一  			
+//			card.setRepayDate(calendar2.getTime());
+			//账单发布日期
+//			Date date3 = new Date();//当前日期  
+//			Calendar calendar3 = Calendar.getInstance();//日历对象  
+//			calendar3.setTime(date3);//设置当前日期  
+//			calendar3.add(Calendar.DATE, 10);//月份加一  						
+//			card.setBillDate(calendar3.getTime());		
+			card.setCardStatus("0");
+			boolean B_card = cardDao.insertCardMessage(card);
+//			System.out.println(B_card);
+		
+			
+			boolean B_uct = secondDao.UpdateCustomerType(c.getUuid());
+		
+		
+	}
+
+	private String substring(String cardNum, int i) {
+		// TODO Auto-generated method stub
+		/** * 
+		@author    姚彬彬 
+		@date      2018年1月9日 下午5:31:08   
+		@describe  
+		*/
+		return null;
+	}
+
+	@Override
+	public void secondApprovalerDiscardCustomer() {
+		// TODO Auto-generated method stub
+
+	}
+
+}
