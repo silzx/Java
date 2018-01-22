@@ -1,0 +1,126 @@
+<%@ page language="java" contentType="text/html;charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
+<%@ page import="java.util.UUID"%>
+<%@ page import="java.util.*"%>
+<%
+	String path = request.getContextPath();
+	String basePath = request.getScheme() + "://"
+			+ request.getServerName() + ":" + request.getServerPort()
+			+ path + "/";
+%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<base href="<%=basePath%>">
+<title></title>
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="cache-control" content="no-cache">
+<meta http-equiv="expires" content="0">
+<meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
+<meta http-equiv="description" content="This is my page">
+<script src="http://code.jquery.com/jquery-3.2.1.min.js"
+	integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+	crossorigin="anonymous"></script>
+<link rel="stylesheet"
+	href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css"
+	integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+	crossorigin="anonymous">
+<script
+	src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"
+	integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+	crossorigin="anonymous"></script>
+<script src="https://cdn.bootcss.com/angular.js/1.5.8/angular.min.js"></script>
+<link rel="stylesheet" type="text/css" href="admin/css/buttons.css">
+<link
+	href="http://cdn.bootcss.com/font-awesome/4.2.0/css/font-awesome.min.css"
+	rel="stylesheet">
+</head>
+<%
+	String message = request.getParameter("message");
+	String price = request.getParameter("price");
+	String uuid = UUID.randomUUID().toString().replace("-", "");
+%>
+<script type="text/javascript">
+	$(function() {
+		var page = 0;
+		//下一页事件
+		$("#nextPage").click(function() {
+			page = 1;
+			selectMeyhod();
+		});
+
+		//上一页事件
+		$("#lastPage").click(function() {
+			page = -1;
+			selectMeyhod();
+		});
+
+		function selectMeyhod() {
+			$.ajax({
+				data : {
+					"page" : page,
+					"cardNum" : $("#cardNum").val()
+				},
+				type : "post",
+				dataType : "json",
+				url : "user/record",
+				success : function(data) {
+					if (data.message) {
+						$("#yemian").load("admin/costbill.jsp");
+						return true;
+					} else {
+						alert("查询失败");
+						return false;
+					}
+				},
+				error : function() {
+					alert("查询出错");
+					return false;
+				}
+			});
+		}
+	});
+</script>
+<body id="yemian">
+	<center>
+		<div class="jumbotron">
+			<h2>消费记录</h2>
+		</div>
+		<input type="hidden" id="cardNum" value="${cardNum }"/>
+		<table class="table table-striped table-hover" style="width: 90%">
+			<tr>
+				<td>交易流水</td>
+				<td>卡号</td>
+				<td>商户名称</td>
+				<td>交易类型</td>
+				<td>金额</td>
+				<td>交易时间</td>
+				<td>POS机编号</td>
+			</tr>
+
+			<c:forEach items="${MESList }" var="e">
+				<tr>
+					<td>${e.tradeNum }</td>
+					<td>${e.cardNum }</td>
+					<td>${e.storeName }</td>
+					<td>${e.tradeType }</td>
+					<td>${e.price }</td>
+					<td><fmt:formatDate value="${e.tradeDate }"
+							pattern="yyyy年MM月dd HH:mm:ss" /></td>
+					<td>${e.posNum }</td>
+				</tr>
+			</c:forEach>
+		</table>
+		<div align="center">
+			<button id="lastPage">上一页</button>&nbsp;&nbsp; <span>
+						${mesPage } / ${mesPageCount } </span>&nbsp;&nbsp;
+					<button id="nextPage">下一页</button>
+		</div>
+		<p>
+		<p>
+		<p>
+	</center>
+</body>
+</html>
